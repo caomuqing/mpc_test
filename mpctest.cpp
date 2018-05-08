@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include "matrix_alg.h"
 /*
 mpc test program
 states: x: [phi, theta, psi, p, q, r, u, v, w, x, y, z]
@@ -21,6 +22,9 @@ formulate augmented model A, B, C
 #define IZ 1.0 //moment of inertia X axis
 #define M 1.5 //mass of copter in kg
 #define G 9.81//gravity constant
+
+float (*matrix_power(float A[][12], int n))[12];
+
 
 main() {
 
@@ -50,6 +54,38 @@ main() {
 		{x[7], -x[6], 0, 0, 0, 0, -x[1], x[0], 1, 0, 0, 0}
 
 	};
+
+	float Nm[144]=		//for testing only, remove in real usage
+	{
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,
+		0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,
+		0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,
+		0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 ,
+		0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 ,
+		0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 ,
+		0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 ,
+		0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 ,
+		0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 ,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 
+
+	};
+
+
+	float testmatrix[144];		//testing code
+	int testn=12;
+	bool right=  mat_inverse(Nm, testmatrix, 12);
+	//float (*testmatrix)[12]= matrix_power(Nm,20);
+	printf("%f %f %f %f %f %f %f  \n", testmatrix[0], testmatrix[1], testmatrix[2], testmatrix[3], testmatrix[4], testmatrix[5], testmatrix[6]);
+	printf("%f %f %f %f %f %f %f  \n", testmatrix[12], testmatrix[13], testmatrix[14], testmatrix[15], testmatrix[16], testmatrix[17], testmatrix[18]);
+	printf("%f %f %f %f %f %f %f  \n", testmatrix[24], testmatrix[25], testmatrix[26], testmatrix[27], testmatrix[28], testmatrix[29], testmatrix[30]);
+	// printf("%f %f %f %f %f %f %f  \n", testmatrix[36], testmatrix[3][1], testmatrix[3][2], testmatrix[3][3], testmatrix[3][4], testmatrix[3][5], testmatrix[3][6]);
+	// printf("%f %f %f %f %f %f %f  \n", testmatrix[48], testmatrix[4][1], testmatrix[4][2], testmatrix[4][3], testmatrix[4][4], testmatrix[4][5], testmatrix[4][6]);
+	// printf("%f %f %f %f %f %f %f  \n", testmatrix[60], testmatrix[5][1], testmatrix[5][2], testmatrix[5][3], testmatrix[5][4], testmatrix[5][5], testmatrix[5][6]);
+
+
+
 
 	float Bm[12][4]=
 	{
@@ -165,15 +201,46 @@ main() {
 
 }
 
-	float (*matrix_power(float A[][12], int n))[12]{
-		int rows =  sizeof A / sizeof A[0];
-		int cols = sizeof A[0] / sizeof(A[0][0]);
-		static float B[12][12];
+	float (*matrix_power(float Ma[][12], int n))[12]{
+		// int rows =  sizeof A / sizeof A[0];
+		// int cols = sizeof A[0] / sizeof(A[0][0]);
+		float inter_result[12][12];
+		float inter_result2[12][12];
+		static float result[12][12];
 
-		for (int c= 0; c<rows; c++){
-			for (int d=0; d<cols; d++){
-				B[c][d]=A[c][d];
+		for (int c= 0; c<12; c++){	//firstly define a unity matrix
+			for (int d=0; d<12; d++){
+				if (c==d){
+					inter_result[c][d]=1.0;
+				} else{
+					inter_result[c][d]=0;
+				}
 			}
 		}
-		return B;
+
+		float sum=0;
+		for (int power=0; power<n; power++){
+			for (int c=0; c<12; c++){
+				for (int d=0; d<12; d++){
+					for (int k=0; k<12; k++){
+						sum = sum + Ma[c][k]*inter_result[k][d]; 
+					}
+					inter_result2[c][d]=sum;
+					sum=0;
+				}
+			}
+			for (int c=0; c<12; c++){
+				for (int d=0; d<12; d++){
+					inter_result[c][d]=inter_result2[c][d];
+				}
+			}
+		}
+
+		for (int c=0; c<12; c++){
+			for (int d=0; d<12; d++){
+				result[c][d]=inter_result2[c][d];
+			}
+		}
+		return result;
 	}
+
