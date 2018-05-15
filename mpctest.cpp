@@ -271,12 +271,46 @@ main() {
 		}
 	}
 
-	float T[18][18]=		//for testing only, remove in real usage
+	// float T[18][18]=		//for testing only, remove in real usage
+	// {
+	// 	{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 1.02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 1.03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
+	// 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+
+	// };
+
+/*--------------------------------objective function variables------------------------------------------------------------------------*/
+	float phi[N*4][18];
+	float phi_one[N*4][18];
+	//float (*A_power)[18];
+	float A_power[18][18];
+	float Al_power[N][N];
+	float inter_result2[N][N];	//for calculating Al^(m-1)
+	float inter_result3[18][18];//for calculating A^m
+	float Alp_phi_one[N*4][18];
+	float omega[N*4][N*4];
+	float psi[N*4][18];
+	float Q[18][18] = 
 	{
 		{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 1.02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 1.03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -294,15 +328,18 @@ main() {
 
 	};
 
-/*--------------------------------objective function variables------------------------------------------------------------------------*/
-	float phi[N][18];
-	float phi_one[N][18];
-	//float (*A_power)[18];
-	float A_power[18][18];
-	float Al_power[N][N];
-	float inter_result2[18][18];
-	float Alp_phi_one[N][18];
-
+	float R[4]={1, 1, 1, 1};
+	float R_L[N*4][N*4];
+	for (int c=0; c<4*N; c++){
+		for (int d=0; d<4*N; d++){
+			R_L[c][d]=0;
+		}
+	}
+	for (int n=0; n<4; n++){
+		for (int c=0; c<N; c++){
+			R_L[n*N+c][n*N+c]=R[n];
+		}
+	}
 	//float LiBt[N][18];	//intermediate reuslt for finding phi
 	// sum=0;
 	// for (int c=0; c<N; c++){ 	//L[N][0]*B^T[][], Nx4 * 4x18
@@ -326,18 +363,14 @@ main() {
 	// 	}	
 	// }
 
-	sum=0;
-	for (int c=0; c<N; c++){ 	//L[N][0]*B^T[][], Nx4 * 4x18
-		for (int d=0; d<18; d++){
-			for (int k=0; k<4; k++){
-				sum= sum+ L[c][0]*B[d][k];
+	for (int n=0; n<4; n++){		//number of input
+		for (int c=0; c<N; c++){ 	//L[N][0]*B^T[][], Nx4 * 4x18
+			for (int d=0; d<18; d++){
+				phi_one[n*N+c][d]=L[c][0]*B[d][n];
+				phi[n*N+c][d]=L[c][0]*B[d][n];
 			}
-			phi_one[c][d]=sum;
-			phi[c][d]=sum;
-			sum=0;
-		}
-	}	
-
+		}	
+	}
 	// for (int c = 0; c < N; ++c){	//calculate phi=LiBt x A^T
 	// 	for (int d = 0; d<18; ++d){
 	// 		for (int k=0; k<18; k++){
@@ -374,25 +407,51 @@ main() {
 			}
 			for (int c=0; c<N; c++){
 				for (int d=0; d<N; d++){
-					Al_power[c][d]=inter_result2[c][d];	//match  A_power with the result2, this is for the next interation
+					Al_power[c][d]=inter_result2[c][d];	//match  Al_power with the result2, this is for the next interation
 				}
 			}		
 		}
 
-		for (int c=0; c<N; c++){	//get Al^(m-1)*phi(1)
-			for (int d=0; d<18; d++){
-				for (int k=0; k<N; k++){
-					sum = sum + Al_power[c][k]*phi_one[k][d];
+		if (m==1){								//firstly define a unity matrix, as A^1
+				for (int c= 0; c<18; c++){	
+					for (int d=0; d<18; d++){
+						A_power[c][d]=A[c][d];
+					}	
 				}
-				Alp_phi_one[c][d]=sum;
-				sum = 0;
+
+		}else{									//get A^(m) by multiplying with A in each iteration
+			for (int c=0; c<18; c++){
+				for (int d=0; d<18; d++){
+					for (int k=0; k<18; k++){
+						sum = sum + A[c][k]*A_power[k][d]; 
+					}
+					inter_result3[c][d]=sum;		//calculate each component in the matrix and save in intermediate result3
+					sum=0;
+				}
 			}
+			for (int c=0; c<18; c++){
+				for (int d=0; d<18; d++){
+					A_power[c][d]=inter_result3[c][d];	//match  A_power with the result3, this is for the next interation
+				}
+			}		
 		}
 
-		float phi_At[N][18];
-		for (int c = 0; c < N; ++c){		//get phi^(m-1)*A^T
+
+		for (int n=0; n<4; n++){
+			for (int c=0; c<N; c++){	//get Al^(m-1)*phi(1)
+				for (int d=0; d<18; d++){
+					for (int k=0; k<N; k++){
+						sum = sum + Al_power[c][k]*phi_one[n*N+k][d];
+					}
+					Alp_phi_one[n*N+c][d]=sum;
+					sum = 0;
+				}
+			}
+		}
+		float phi_At[N*4][18];
+		for (int c = 0; c < 4*N; ++c){		//get phi^(m-1)*A^T
 			for (int d=0; d<18; d++){
-				for (int k=0; k<N; k++){
+				for (int k=0; k<18; k++){
 					sum = sum + phi[c][k]*A[d][k];
 				}
 				phi_At[c][d]=sum;
@@ -400,46 +459,61 @@ main() {
 			}
 		}
 		
-		for (int c=0; c<N; ++c){
+		for (int c=0; c<4*N; ++c){
 			for (int d=0; d<18; d++){
 				phi[c][d] = phi_At[c][d]+ Alp_phi_one[c][d];	//adding to get phi(m)
 			}
 		}
+
+		//calculate omega
+		float phi_q[4*N][18];	//firstly calculate phi(m) x Q
+		for (int c=0; c<4*N; c++){
+			for (int d=0; d<18; d++){
+				for (int k=0; k<18; k++){
+					sum = sum+phi[c][k]*Q[k][d];
+				}
+				phi_q[c][d]=sum;
+				sum=0;
+			}
+		}
+
+		//float phi_q_phiT[4*N][4*N];
+		for (int c=0; c<4*N; c++){		// then get phi(m) x Q x phi(m)^T
+			for (int d=0; d<4*N; d++){
+				for (int k=0; k<18; k++){
+					sum = sum+phi_q[c][k]*phi[d][k];
+				}
+				//phi_q_phiT[c][d]=sum;
+				omega[c][d]= omega[c][d] + sum;			//add to omega[c][d]
+				sum=0;
+			}
+		}
+
+		for (int c=0; c<4*N; c++){
+			for (int d=0; d<18; d++){		//get phi(m) x Q x A^m
+				for (int k=0; k<18; k++){
+					sum = sum+ phi_q[c][k]*A_power[k][d];
+				}
+				psi[c][d]=psi[c][d]+sum;			//add to psi
+				sum=0;
+			}
+		}
+
+
+
 	}
 
+	for (int c=0; c<4*N; c++){	//omega = omega +R_L
+		for (int d=0; d<4*N; d++){
+			omega[c][d]=omega[c][d]+R_L[c][d];
+		}
+	}
 	// for (int m = 1; m <= NP; ++m)		//calculate phi(1) up to phi(NP). At each iteration m, we get phi(m) inside the 2D array phi[N][18]
 	// {		
 	// 	// for (int i = 0; i < m; ++i)
 	// 	// {
 	// 	// 	A_power = matrix_power(A,m-i-1);
 	// 	// }
-	// 	if (m==1){								//firstly define a unity matrix, as A^0
-	// 			for (int c= 0; c<18; c++){	
-	// 				for (int d=0; d<18; d++){
-	// 					if (c==d){
-	// 						A_power[c][d]=1.0;
-	// 					} else{
-	// 						A_power[c][d]=0;
-	// 					}
-	// 				}	
-	// 			}
-
-	// 	}else{									//get A^(m-1)
-	// 		for (int c=0; c<18; c++){
-	// 			for (int d=0; d<18; d++){
-	// 				for (int k=0; k<18; k++){
-	// 					sum = sum + A[c][k]*A_power[k][d]; 
-	// 				}
-	// 				inter_result2[c][d]=sum;		//calculate each component in the matrix and save in intermediate result2
-	// 				sum=0;
-	// 			}
-	// 		}
-	// 		for (int c=0; c<18; c++){
-	// 			for (int d=0; d<18; d++){
-	// 				A_power[c][d]=inter_result2[c][d];	//match  A_power with the result2, this is for the next interation
-	// 			}
-	// 		}		
-	// 	}
 
 	// 	sum=0;
 	// 	for (int c=0; c<N; c++){ 	//L[N][i]*B^T[][], Nx4 * 4x18
