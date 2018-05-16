@@ -22,9 +22,10 @@ formulate augmented model A, B, C
 #define IZ 	1.0 	//moment of inertia X axis
 #define M 	1.5 	//mass of copter in kg
 #define G 	9.81	//gravity constant
-#define NP 	1000 	//prediction horizon 
-#define N 	5		//number of laguarre function in each laguarre vector
+#define NP 	500 	//prediction horizon 
+#define N 	7		//number of laguarre function in each laguarre vector
 #define ALPHA 0.3	//laguarre approximation tuning parameter
+#define delta_T 0.01	//discrete time interval
 
 float (*matrix_power(float A[][18], int n))[18];
 
@@ -33,14 +34,27 @@ main() {
 
 	printf("Hello mpc\n");
 	//getting model states
-	float x[12] =
-	{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
-	};
+	float x[12] ={0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+
+	float x_prev[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+
+	float y[6] = {x[0], x[1], x[2], x[9], x[10], x[11]};
+
+	float y_des[6] = {0, 0, 0, 1, 0, 1};
 
 	float u[4] = {M*G, 0, 0, 0};
 
-	//define model matrices A, B, C
+	float delta_u[4];
+
+	float X_aug[18]=
+	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, y[0]-y_des[0], y[1]-y_des[1], y[2]-y_des[2], y[3]-y_des[3], y[4]-y_des[4], y[5]-y_des[5]};
+
+	for (int i=0; i<12; i++){		//augmented states
+		X_aug[i]= x[i]-x_prev[i];
+	 };
+
+
+	/*-----------------------------------------------define model matrices A, B, C-----------------------------------------*/
 	float Am[12][12]=
 	{
 		{x[4]*x[1], x[4]*x[0]+x[5], 0, 1, x[0]*x[1], x[1], 0, 0, 0, 0, 0, 0 },
@@ -58,6 +72,15 @@ main() {
 
 	};
 
+	for (int c=0; c<12; c++){		//convert continuous A into discrete time A matrix
+		for (int d=0; d<12; d++){
+			if (c==d){
+				Am[c][d]=1+Am[c][d]*delta_T;
+			}else{
+				Am[c][d]=Am[c][d]*delta_T;
+			}
+		}
+	}
 	// float Nm[18][18]=		//for testing only, remove in real usage
 	// {
 	// 	{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -116,6 +139,12 @@ main() {
 		{0, 0, 0, 0},
 		{0, 0, 0, 0},
 		{0, 0, 0, 0}};
+
+	for (int c=0; c<12; c++){		//convert continuous B into discrete-time B matrix
+		for (int d=0; d<4; d++){
+			Bm[c][d]=Bm[c][d]*delta_T;
+		}
+	}
 
 	float Cm[6][12]=
 	{
@@ -499,15 +528,8 @@ main() {
 			}
 		}
 
-
-
 	}
 
-	for (int c=0; c<4*N; c++){	//omega = omega +R_L
-		for (int d=0; d<4*N; d++){
-			omega[c][d]=omega[c][d]+R_L[c][d];
-		}
-	}
 	// for (int m = 1; m <= NP; ++m)		//calculate phi(1) up to phi(NP). At each iteration m, we get phi(m) inside the 2D array phi[N][18]
 	// {		
 	// 	// for (int i = 0; i < m; ++i)
@@ -537,13 +559,77 @@ main() {
 	// 	}
 	// }
 
-	printf("%f %f %f %f %f %f %f  \n", A_power[0][0], A_power[0][1], A_power[0][2], A_power[0][3], A_power[0][4], A_power[0][5], A_power[0][6]);
-	printf("%f %f %f %f %f %f %f  \n", A_power[1][0], A_power[1][1], A_power[1][2], A_power[1][3], A_power[1][4], A_power[1][5], A_power[1][6]);
-	printf("%f %f %f %f %f %f %f  \n", A_power[2][0], A_power[2][1], A_power[2][2], A_power[2][3], A_power[2][4], A_power[2][5], A_power[2][6]);
-	printf("%f %f %f %f %f %f %f  \n", A_power[3][0], A_power[3][1], A_power[3][2], A_power[3][3], A_power[3][4], A_power[3][5], A_power[3][6]);
-	printf("%f %f %f %f %f %f %f  \n", A_power[4][0], A_power[4][1], A_power[4][2], A_power[4][3], A_power[4][4], A_power[4][5], A_power[4][6]);
-	printf("%f %f %f %f %f %f %f  \n", A_power[5][0], A_power[5][1], A_power[5][2], A_power[5][3], A_power[5][4], A_power[5][5], A_power[5][6]);
+	for (int c=0; c<4*N; c++){	//omega = omega +R_L
+		for (int d=0; d<4*N; d++){
+			omega[c][d]=omega[c][d]+R_L[c][d];
+		}
+	}
 
+	float omega_one_D[16*N*N];			//convert 2d matrix to 1d
+	for (int c = 0; c < 4*N; c++){
+		for (int d = 0; d < 4*N; d++){
+		    omega_one_D[c * 4*N + d] = omega[c][d];
+		}
+	}
+	/*----------------------------------------------calculating change in u---------------------------------------------------------*/
+	float omega_one_D_inv[16*N*N];		//testing code
+	bool inverse_ok=  mat_inverse(omega_one_D, omega_one_D_inv, 4*N);
+	float omega_inv[4*N][4*N];
+	float minus_omega_inv_psi[4*N][18];
+	float eta[4*N];
+
+	if (inverse_ok){
+		for (int c = 0; c < 4*N; c++){	//convert 1d matrix to 2d
+			for (int d = 0; d < 4*N; d++){
+			    omega_inv[c][d] = omega_one_D_inv[c * 4*N + d];
+			}
+		}
+
+		for (int c=0; c<4*N; c++){			//get -omega^(-1) x psi
+			for (int d=0; d<18; d++){
+				for (int k=0; k<4*N; k++){
+					sum = sum + omega_inv[c][k]*psi[k][d];
+				}
+				minus_omega_inv_psi[c][d] = -(sum);
+				sum=0;
+			}
+		}
+
+		for (int c=0; c<4*N; c++){
+			for (int k=0; k<18; k++){
+				sum = sum + minus_omega_inv_psi[c][k]*X_aug[k];
+			}
+			eta[c]=sum;
+			sum=0;
+		}
+
+//		for (int i=0; i<50; i++){
+			for (int n=0; n<4; n++){
+				for (int c=0; c<N; c++){
+					sum=sum+ L[c][0]*eta[n*N+c];
+				}
+				delta_u[n]=sum;
+				sum=0;
+			}
+//			printf("%f %f %f %f \n", delta_u[0], delta_u[1], delta_u[2], delta_u[3]);
+//		}
+
+	}else{		//if inverse failed
+		printf("inverse failed!!!!!\n");
+	}
+
+	/*-------------------------------------------------forward simulation---------------------------------------*/
+
+
+
+	// if (inverse_ok){
+	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[0][0], omega_inv[0][1], omega_inv[0][2], omega_inv[0][3], omega_inv[0][4], omega_inv[0][5], omega_inv[0][6]);
+	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[1][0], omega_inv[1][1], omega_inv[1][2], omega_inv[1][3], omega_inv[1][4], omega_inv[1][5], omega_inv[1][6]);
+	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[2][0], omega_inv[2][1], omega_inv[2][2], omega_inv[2][3], omega_inv[2][4], omega_inv[2][5], omega_inv[2][6]);
+	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[3][0], omega_inv[3][1], omega_inv[3][2], omega_inv[3][3], omega_inv[3][4], omega_inv[3][5], omega_inv[3][6]);
+	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[4][0], omega_inv[4][1], omega_inv[4][2], omega_inv[4][3], omega_inv[4][4], omega_inv[4][5], omega_inv[4][6]);
+	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[5][0], omega_inv[5][1], omega_inv[5][2], omega_inv[5][3], omega_inv[5][4], omega_inv[5][5], omega_inv[5][6]);
+	// }
 	//delete[] A_power;
 }
 
