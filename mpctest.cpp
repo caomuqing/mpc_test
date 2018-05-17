@@ -25,7 +25,7 @@ formulate augmented model A, B, C
 #define NP 	500 	//prediction horizon 
 #define N 	7		//number of laguarre function in each laguarre vector
 #define ALPHA 0.3	//laguarre approximation tuning parameter
-#define delta_T 0.01	//discrete time interval
+#define delta_T 0.0025	//discrete time interval
 
 float (*matrix_power(float A[][18], int n))[18];
 
@@ -40,7 +40,7 @@ main() {
 
 	float y[6] = {x[0], x[1], x[2], x[9], x[10], x[11]};
 
-	float y_des[6] = {0, 0, 0, 1, 0, 1};
+	float y_des[6] = {0, 0, 0, 5, 5, 2};
 
 	float u[4] = {M*G, 0, 0, 0};
 
@@ -53,7 +53,7 @@ main() {
 		X_aug[i]= x[i]-x_prev[i];
 	 };
 
-
+	 for (int t=0; t<5000; t++){		//simulation of 50 time steps, start of simulation loop
 	/*-----------------------------------------------define model matrices A, B, C-----------------------------------------*/
 	float Am[12][12]=
 	{
@@ -237,9 +237,25 @@ main() {
 
 	for (int c=0; c<6; c++){
 		for (int d=12; d<18; d++){
-
+			if (c==(d-12)){
+				C[c][d]=1;
+			}else{
+				C[c][d]=0;
+			}
 		}
 	}
+
+	float Q[18][18];  
+	for (int c=0; c<18; c++){		//calculating Q=C^T x C
+		for (int d=0; d<18; d++){
+			for (int k=0; k<6; k++){
+				sum = sum+C[k][c]*C[k][d];
+			}
+			Q[c][d]=sum;
+			sum=0;
+		}
+	}
+
 
 	// printf("%f %f %f %f %f %f %f  \n", A[0][0], A[0][1], A[0][2], A[0][3], A[0][4], A[0][5], A[0][6]);
 	// printf("%f %f %f %f %f %f %f  \n", A[1][0], A[1][1], A[1][2], A[1][3], A[1][4], A[1][5], A[1][6]);
@@ -264,7 +280,7 @@ main() {
 	float beta = 1-ALPHA*ALPHA;
 	float sqrt_beta = sqrt(beta);
 
-	printf("%f %f\n",beta, sqrt_beta );
+	//printf("%f %f\n",beta, sqrt_beta );
 	for (int k=1; k<N; k++){		//formulate L[0]
 		L[k][0]=L[k-1][0]*(-1)*ALPHA;
 	}
@@ -334,28 +350,7 @@ main() {
 	float Alp_phi_one[N*4][18];
 	float omega[N*4][N*4];
 	float psi[N*4][18];
-	float Q[18][18] = 
-	{
-		{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
-		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
 
-	};
 
 	float R[4]={1, 1, 1, 1};
 	float R_L[N*4][N*4];
@@ -571,7 +566,7 @@ main() {
 		    omega_one_D[c * 4*N + d] = omega[c][d];
 		}
 	}
-	/*----------------------------------------------calculating change in u---------------------------------------------------------*/
+	/*----------------------------------------------calculating change in input and input itself---------------------------------------------------------*/
 	float omega_one_D_inv[16*N*N];		//testing code
 	bool inverse_ok=  mat_inverse(omega_one_D, omega_one_D_inv, 4*N);
 	float omega_inv[4*N][4*N];
@@ -603,16 +598,17 @@ main() {
 			sum=0;
 		}
 
-//		for (int i=0; i<50; i++){
+	//	for (int i=0; i<50; i++){
 			for (int n=0; n<4; n++){
 				for (int c=0; c<N; c++){
-					sum=sum+ L[c][0]*eta[n*N+c];
+					sum=sum+ L[c][0]*eta[n*N+c];	//getting this step delta u =L[0] *eta
 				}
 				delta_u[n]=sum;
+				u[n]=u[n]+delta_u[n];	//calculating this step input u
 				sum=0;
 			}
-//			printf("%f %f %f %f \n", delta_u[0], delta_u[1], delta_u[2], delta_u[3]);
-//		}
+	//		printf("%f %f %f %f \n", delta_u[0], delta_u[1], delta_u[2], delta_u[3]);
+	//	}
 
 	}else{		//if inverse failed
 		printf("inverse failed!!!!!\n");
@@ -620,16 +616,41 @@ main() {
 
 	/*-------------------------------------------------forward simulation---------------------------------------*/
 
+	//x=Ax+Bu
+	float AX_aug[18];
+	float Bdelta_u[18];
+	for (int c=0; c<18; c++){			//calculating A*X
+		for (int k=0; k<18; k++){
+			sum = sum +A[c][k]*X_aug[k];
+		}
+		AX_aug[c]=sum;
+		sum=0;
+	}
 
+	for (int c=0; c<18; c++){		//calculating B*deltau
+		for (int k=0; k<4; k++){
+			sum = sum + B[c][k]*delta_u[k];
+		}
+		Bdelta_u[c]=sum;
+		X_aug[c]=AX_aug[c]+Bdelta_u[c];
+		sum=0;
+	}
 
-	// if (inverse_ok){
-	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[0][0], omega_inv[0][1], omega_inv[0][2], omega_inv[0][3], omega_inv[0][4], omega_inv[0][5], omega_inv[0][6]);
-	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[1][0], omega_inv[1][1], omega_inv[1][2], omega_inv[1][3], omega_inv[1][4], omega_inv[1][5], omega_inv[1][6]);
-	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[2][0], omega_inv[2][1], omega_inv[2][2], omega_inv[2][3], omega_inv[2][4], omega_inv[2][5], omega_inv[2][6]);
-	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[3][0], omega_inv[3][1], omega_inv[3][2], omega_inv[3][3], omega_inv[3][4], omega_inv[3][5], omega_inv[3][6]);
-	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[4][0], omega_inv[4][1], omega_inv[4][2], omega_inv[4][3], omega_inv[4][4], omega_inv[4][5], omega_inv[4][6]);
-	// 	printf("%f %f %f %f %f %f %f  \n", omega_inv[5][0], omega_inv[5][1], omega_inv[5][2], omega_inv[5][3], omega_inv[5][4], omega_inv[5][5], omega_inv[5][6]);
-	// }
+	for (int i=0; i<12; i++){		//update states x
+		x_prev[i]=x[i];
+		x[i]=x_prev[i]+X_aug[i];
+	}
+
+	if (inverse_ok){
+		printf("%f %f %f %f %f %f \n", x[0], x[1], x[2], x[9], x[10], x[11]);
+		// printf("%f %f %f %f %f %f %f  \n", omega_inv[1][0], omega_inv[1][1], omega_inv[1][2], omega_inv[1][3], omega_inv[1][4], omega_inv[1][5], omega_inv[1][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega_inv[2][0], omega_inv[2][1], omega_inv[2][2], omega_inv[2][3], omega_inv[2][4], omega_inv[2][5], omega_inv[2][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega_inv[3][0], omega_inv[3][1], omega_inv[3][2], omega_inv[3][3], omega_inv[3][4], omega_inv[3][5], omega_inv[3][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega_inv[4][0], omega_inv[4][1], omega_inv[4][2], omega_inv[4][3], omega_inv[4][4], omega_inv[4][5], omega_inv[4][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega_inv[5][0], omega_inv[5][1], omega_inv[5][2], omega_inv[5][3], omega_inv[5][4], omega_inv[5][5], omega_inv[5][6]);
+	}
+
+	}		//end of simulation loop
 	//delete[] A_power;
 }
 
