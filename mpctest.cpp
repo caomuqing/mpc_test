@@ -22,9 +22,9 @@ formulate augmented model A, B, C
 #define IZ 	1.0 	//moment of inertia X axis
 #define M 	1.5 	//mass of copter in kg
 #define G 	9.81	//gravity constant
-#define NP 	500 	//prediction horizon 
-#define N 	7		//number of laguarre function in each laguarre vector
-#define ALPHA 0.3	//laguarre approximation tuning parameter
+#define NP 	40 	//prediction horizon 
+#define N 	10		//number of laguarre function in each laguarre vector
+#define ALPHA 0.5	//laguarre approximation tuning parameter
 #define delta_T 0.0025	//discrete time interval
 
 float (*matrix_power(float A[][18], int n))[18];
@@ -53,7 +53,7 @@ main() {
 		X_aug[i]= x[i]-x_prev[i];
 	 };
 
-	 for (int t=0; t<5000; t++){		//simulation of 50 time steps, start of simulation loop
+	 //for (int t=0; t<5000; t++){		//simulation of 50 time steps, start of simulation loop
 	/*-----------------------------------------------define model matrices A, B, C-----------------------------------------*/
 	float Am[12][12]=
 	{
@@ -352,7 +352,7 @@ main() {
 	float psi[N*4][18];
 
 
-	float R[4]={1, 1, 1, 1};
+	float R[4]={0.1, 0.1, 0.1, 0.1};
 	float R_L[N*4][N*4];
 	for (int c=0; c<4*N; c++){
 		for (int d=0; d<4*N; d++){
@@ -642,15 +642,50 @@ main() {
 	}
 
 	if (inverse_ok){
-		printf("%f %f %f %f %f %f \n", x[0], x[1], x[2], x[9], x[10], x[11]);
+		//printf("%f %f %f %f %f %f \n", x[0], x[1], x[2], x[9], x[10], x[11]);
 		// printf("%f %f %f %f %f %f %f  \n", omega_inv[1][0], omega_inv[1][1], omega_inv[1][2], omega_inv[1][3], omega_inv[1][4], omega_inv[1][5], omega_inv[1][6]);
 		// printf("%f %f %f %f %f %f %f  \n", omega_inv[2][0], omega_inv[2][1], omega_inv[2][2], omega_inv[2][3], omega_inv[2][4], omega_inv[2][5], omega_inv[2][6]);
 		// printf("%f %f %f %f %f %f %f  \n", omega_inv[3][0], omega_inv[3][1], omega_inv[3][2], omega_inv[3][3], omega_inv[3][4], omega_inv[3][5], omega_inv[3][6]);
 		// printf("%f %f %f %f %f %f %f  \n", omega_inv[4][0], omega_inv[4][1], omega_inv[4][2], omega_inv[4][3], omega_inv[4][4], omega_inv[4][5], omega_inv[4][6]);
 		// printf("%f %f %f %f %f %f %f  \n", omega_inv[5][0], omega_inv[5][1], omega_inv[5][2], omega_inv[5][3], omega_inv[5][4], omega_inv[5][5], omega_inv[5][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[0][0], omega[0][1], omega[0][2], omega[0][3], omega[0][4], omega[0][5], omega[0][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[1][0], omega[1][1], omega[1][2], omega[1][3], omega[1][4], omega[1][5], omega[1][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[2][0], omega[2][1], omega[2][2], omega[2][3], omega[2][4], omega[2][5], omega[2][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[3][0], omega[3][1], omega[3][2], omega[3][3], omega[3][4], omega[3][5], omega[3][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[4][0], omega[4][1], omega[4][2], omega[4][3], omega[4][4], omega[4][5], omega[4][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[5][0], omega[5][1], omega[5][2], omega[5][3], omega[5][4], omega[5][5], omega[5][6]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[10][10], omega[10][11], omega[10][12], omega[10][13], omega[10][14], omega[10][15], omega[10][16]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[11][10], omega[11][11], omega[11][12], omega[11][13], omega[11][14], omega[11][15], omega[11][16]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[12][10], omega[12][11], omega[12][12], omega[12][13], omega[12][14], omega[12][15], omega[12][16]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[13][10], omega[13][11], omega[13][12], omega[13][13], omega[13][14], omega[13][15], omega[13][16]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[14][10], omega[14][11], omega[14][12], omega[14][13], omega[14][14], omega[14][15], omega[14][16]);
+		// printf("%f %f %f %f %f %f %f  \n", omega[15][10], omega[15][11], omega[15][12], omega[15][13], omega[15][14], omega[15][15], omega[15][16]);
+		// printf("%f %f %f %f %f %f %f  \n", psi[10][0], psi[10][1], psi[10][2], psi[10][3], psi[10][4], psi[10][5], psi[10][6]);
+		// printf("%f %f %f %f %f %f %f  \n", psi[11][0], psi[11][1], psi[11][2], psi[11][3], psi[11][4], psi[11][5], psi[11][6]);
+		// printf("%f %f %f %f %f %f %f  \n", psi[12][0], psi[12][1], psi[12][2], psi[12][3], psi[12][4], psi[12][5], psi[12][6]);
+		// printf("%f %f %f %f %f %f %f  \n", psi[13][0], psi[13][1], psi[13][2], psi[13][3], psi[13][4], psi[13][5], psi[13][6]);
+		// printf("%f %f %f %f %f %f %f  \n", psi[14][0], psi[14][1], psi[14][2], psi[14][3], psi[14][4], psi[14][5], psi[14][6]);
+		// printf("%f %f %f %f %f %f %f  \n", psi[15][0], psi[15][1], psi[15][2], psi[15][3], psi[15][4], psi[15][5], psi[15][6]);
+		printf("%f %f %f %f %f %f %f  \n", phi[8][0], phi[8][1], phi[8][2], phi[8][3], phi[8][4], phi[8][5], phi[8][6]);
+		printf("%f %f %f %f %f %f %f  \n", phi[9][0], phi[9][1], phi[9][2], phi[9][3], phi[9][4], phi[9][5], phi[9][6]);
+		printf("%f %f %f %f %f %f %f  \n", phi[10][0], phi[10][1], phi[10][2], phi[10][3], phi[10][4], phi[10][5], phi[10][6]);
+		printf("%f %f %f %f %f %f %f  \n", phi[11][0], phi[11][1], phi[11][2], phi[11][3], phi[11][4], phi[11][5], phi[11][6]);
+		printf("%f %f %f %f %f %f %f  \n", phi[12][0], phi[12][1], phi[12][2], phi[12][3], phi[12][4], phi[12][5], phi[12][6]);
+		printf("%f %f %f %f %f %f %f  \n", phi[13][0], phi[13][1], phi[13][2], phi[13][3], phi[13][4], phi[13][5], phi[13][6]);
+		printf("%f %f %f %f %f %f %f  \n", phi[14][0], phi[14][1], phi[14][2], phi[14][3], phi[14][4], phi[14][5], phi[14][6]);
+		printf("%f %f %f %f %f %f %f  \n", phi[15][0], phi[15][1], phi[15][2], phi[15][3], phi[15][4], phi[15][5], phi[15][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Am[0][0], Am[0][1], Am[0][2], Am[0][3], Am[0][4], Am[0][5], Am[0][6]);		
+		// printf("%f %f %f %f %f %f %f  \n", Am[1][0], Am[1][1], Am[1][2], Am[1][3], Am[1][4], Am[1][5], Am[1][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Am[2][0], Am[2][1], Am[2][2], Am[2][3], Am[2][4], Am[2][5], Am[2][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Am[3][0], Am[3][1], Am[3][2], Am[3][3], Am[3][4], Am[3][5], Am[3][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Am[4][0], Am[4][1], Am[4][2], Am[4][3], Am[4][4], Am[4][5], Am[4][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Am[5][0], Am[5][1], Am[5][2], Am[5][3], Am[5][4], Am[5][5], Am[5][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Am[6][0], Am[6][1], Am[6][2], Am[6][3], Am[6][4], Am[6][5], Am[6][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Bm[8][0], Bm[3][1], Bm[4][2], Bm[5][3], Am[7][4], Am[7][5], Am[7][6]);
+
 	}
 
-	}		//end of simulation loop
+	//}		//end of simulation loop
 	//delete[] A_power;
 }
 
