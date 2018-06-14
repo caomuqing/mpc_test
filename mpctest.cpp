@@ -22,10 +22,10 @@ formulate augmented model A, B, C
 #define IZ 	1.0 	//moment of inertia X axis
 #define M 	1.5 	//mass of copter in kg
 #define G 	9.81	//gravity constant
-#define NP 	40 	//prediction horizon 
+#define NP 	30 	//prediction horizon 
 #define N 	10		//number of laguarre function in each laguarre vector
 #define ALPHA 0.5	//laguarre approximation tuning parameter
-#define delta_T 0.0025	//discrete time interval
+#define delta_T 0.01	//discrete time interval
 
 float (*matrix_power(float A[][18], int n))[18];
 
@@ -40,7 +40,7 @@ main() {
 
 	float y[6] = {x[0], x[1], x[2], x[9], x[10], x[11]};
 
-	float y_des[6] = {0, 0, 0, 5, 5, 2};
+	float y_des[6] = {0, 0, 0, 2, 2, 2};
 
 	float u[4] = {M*G, 0, 0, 0};
 
@@ -53,7 +53,7 @@ main() {
 		X_aug[i]= x[i]-x_prev[i];
 	 };
 
-	 //for (int t=0; t<5000; t++){		//simulation of 50 time steps, start of simulation loop
+	 for (int t=0; t<5000; t++){		//simulation of 50 time steps, start of simulation loop
 	/*-----------------------------------------------define model matrices A, B, C-----------------------------------------*/
 	float Am[12][12]=
 	{
@@ -352,7 +352,7 @@ main() {
 	float psi[N*4][18];
 
 
-	float R[4]={0.1, 0.1, 0.1, 0.1};
+	float R[4]={1, 1, 1, 1};
 	float R_L[N*4][N*4];
 	for (int c=0; c<4*N; c++){
 		for (int d=0; d<4*N; d++){
@@ -460,32 +460,34 @@ main() {
 			}		
 		}
 
+		if (m!=1){
 
-		for (int n=0; n<4; n++){
-			for (int c=0; c<N; c++){	//get Al^(m-1)*phi(1)
-				for (int d=0; d<18; d++){
-					for (int k=0; k<N; k++){
-						sum = sum + Al_power[c][k]*phi_one[n*N+k][d];
+			for (int n=0; n<4; n++){
+				for (int c=0; c<N; c++){	//get Al^(m-1)*phi(1)
+					for (int d=0; d<18; d++){
+						for (int k=0; k<N; k++){
+							sum = sum + Al_power[c][k]*phi_one[n*N+k][d];
+						}
+						Alp_phi_one[n*N+c][d]=sum;
+						sum = 0;
 					}
-					Alp_phi_one[n*N+c][d]=sum;
-					sum = 0;
 				}
 			}
-		}
-		float phi_At[N*4][18];
-		for (int c = 0; c < 4*N; ++c){		//get phi^(m-1)*A^T
-			for (int d=0; d<18; d++){
-				for (int k=0; k<18; k++){
-					sum = sum + phi[c][k]*A[d][k];
+			float phi_At[N*4][18];
+			for (int c = 0; c < 4*N; ++c){		//get phi^(m-1)*A^T
+				for (int d=0; d<18; d++){
+					for (int k=0; k<18; k++){
+						sum = sum + phi[c][k]*A[d][k];
+					}
+					phi_At[c][d]=sum;
+					sum=0;
 				}
-				phi_At[c][d]=sum;
-				sum=0;
 			}
-		}
-		
-		for (int c=0; c<4*N; ++c){
-			for (int d=0; d<18; d++){
-				phi[c][d] = phi_At[c][d]+ Alp_phi_one[c][d];	//adding to get phi(m)
+			
+			for (int c=0; c<4*N; ++c){
+				for (int d=0; d<18; d++){
+					phi[c][d] = phi_At[c][d]+ Alp_phi_one[c][d];	//adding to get phi(m)
+				}
 			}
 		}
 
@@ -642,7 +644,7 @@ main() {
 	}
 
 	if (inverse_ok){
-		//printf("%f %f %f %f %f %f \n", x[0], x[1], x[2], x[9], x[10], x[11]);
+		printf("%f %f %f %f %f %f \n", x[0], x[1], x[2], x[9], x[10], x[11]);
 		// printf("%f %f %f %f %f %f %f  \n", omega_inv[1][0], omega_inv[1][1], omega_inv[1][2], omega_inv[1][3], omega_inv[1][4], omega_inv[1][5], omega_inv[1][6]);
 		// printf("%f %f %f %f %f %f %f  \n", omega_inv[2][0], omega_inv[2][1], omega_inv[2][2], omega_inv[2][3], omega_inv[2][4], omega_inv[2][5], omega_inv[2][6]);
 		// printf("%f %f %f %f %f %f %f  \n", omega_inv[3][0], omega_inv[3][1], omega_inv[3][2], omega_inv[3][3], omega_inv[3][4], omega_inv[3][5], omega_inv[3][6]);
@@ -654,38 +656,54 @@ main() {
 		// printf("%f %f %f %f %f %f %f  \n", omega[3][0], omega[3][1], omega[3][2], omega[3][3], omega[3][4], omega[3][5], omega[3][6]);
 		// printf("%f %f %f %f %f %f %f  \n", omega[4][0], omega[4][1], omega[4][2], omega[4][3], omega[4][4], omega[4][5], omega[4][6]);
 		// printf("%f %f %f %f %f %f %f  \n", omega[5][0], omega[5][1], omega[5][2], omega[5][3], omega[5][4], omega[5][5], omega[5][6]);
-		// printf("%f %f %f %f %f %f %f  \n", omega[10][10], omega[10][11], omega[10][12], omega[10][13], omega[10][14], omega[10][15], omega[10][16]);
-		// printf("%f %f %f %f %f %f %f  \n", omega[11][10], omega[11][11], omega[11][12], omega[11][13], omega[11][14], omega[11][15], omega[11][16]);
-		// printf("%f %f %f %f %f %f %f  \n", omega[12][10], omega[12][11], omega[12][12], omega[12][13], omega[12][14], omega[12][15], omega[12][16]);
-		// printf("%f %f %f %f %f %f %f  \n", omega[13][10], omega[13][11], omega[13][12], omega[13][13], omega[13][14], omega[13][15], omega[13][16]);
-		// printf("%f %f %f %f %f %f %f  \n", omega[14][10], omega[14][11], omega[14][12], omega[14][13], omega[14][14], omega[14][15], omega[14][16]);
-		// printf("%f %f %f %f %f %f %f  \n", omega[15][10], omega[15][11], omega[15][12], omega[15][13], omega[15][14], omega[15][15], omega[15][16]);
+
+		// printf("%f %f %f %f %f %f %f  \n", A[0][0], A[0][1], A[0][2], A[0][3], A[0][4], A[0][5], A[0][6]);		//A checked to be correct
+		// printf("%f %f %f %f %f %f %f  \n", A[1][0], A[1][1], A[1][2], A[1][3], A[1][4], A[1][5], A[1][6]);
+		// printf("%f %f %f %f %f %f %f  \n", A[2][0], A[2][1], A[2][2], A[2][3], A[2][4], A[2][5], A[2][6]);
+		// printf("%f %f %f %f %f %f %f  \n", A[3][0], A[3][1], A[3][2], A[3][3], A[3][4], A[3][5], A[3][6]);
+		// printf("%f %f %f %f %f %f %f  \n", A[4][0], A[4][1], A[4][2], A[4][3], A[4][4], A[4][5], A[4][6]);
+		// printf("%f %f %f %f %f %f %f  \n", A[5][0], A[5][1], A[5][2], A[5][3], A[5][4], A[5][5], A[5][6]);
+		// printf("%f %f %f %f %f %f %f  \n", A[6][0], A[6][1], A[6][2], A[6][3], A[6][4], A[6][5], A[6][6]);
+		// printf("%f %f %f %f %f %f %f  \n", B[8][0], B[3][1], B[4][2], B[5][3], A[7][4], A[7][5], A[7][6]);		//B checked to be correct
+
+		// printf("%f %f %f %f %f %f %f  \n", Al[0][0], Al[0][1], Al[0][2], Al[0][3], Al[0][4], Al[0][5], Al[0][6]);	//Al checked correct
+		// printf("%f %f %f %f %f %f %f  \n", Al[1][0], Al[1][1], Al[1][2], Al[1][3], Al[1][4], Al[1][5], Al[1][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Al[2][0], Al[2][1], Al[2][2], Al[2][3], Al[2][4], Al[2][5], Al[2][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Al[3][0], Al[3][1], Al[3][2], Al[3][3], Al[3][4], Al[3][5], Al[3][6]);
+		// printf("%f %f %f %f %f %f %f  \n", Al[4][0], Al[4][1], Al[4][2], Al[4][3], Al[4][4], Al[4][5], Al[4][6]);
+		//printf("%f %f %f %f %f %f %f %f %f %f  \n", Al[9][0], Al[9][1], Al[9][2], Al[9][3], Al[9][4], Al[9][5], Al[9][6], Al[9][7], Al[9][8], Al[9][9]);
+
+		// printf("%.10f %.10f %.10f %.10f %.10f %.10f %.10f  \n", omega[10][10], omega[10][11], omega[10][12], omega[10][13], omega[10][14], omega[10][15], omega[10][16]);
+		// printf("%.10f %.10f %.10f %.10f %.10f %.10f %.10f  \n", omega[11][10], omega[11][11], omega[11][12], omega[11][13], omega[11][14], omega[11][15], omega[11][16]);
+		// printf("%.10f %.10f %.10f %.10f %.10f %.10f %.10f  \n", omega[12][10], omega[12][11], omega[12][12], omega[12][13], omega[12][14], omega[12][15], omega[12][16]);
+		// printf("%.10f %.10f %.10f %.10f %.10f %.10f %.10f  \n", omega[13][10], omega[13][11], omega[13][12], omega[13][13], omega[13][14], omega[13][15], omega[13][16]);
+		// printf("%.10f %.10f %.10f %.10f %.10f %.10f %.10f  \n", omega[14][10], omega[14][11], omega[14][12], omega[14][13], omega[14][14], omega[14][15], omega[14][16]);
+		// printf("%.10f %.10f %.10f %.10f %.10f %.10f %.10f  \n", omega[15][10], omega[15][11], omega[15][12], omega[15][13], omega[15][14], omega[15][15], omega[15][16]);
+
 		// printf("%f %f %f %f %f %f %f  \n", psi[10][0], psi[10][1], psi[10][2], psi[10][3], psi[10][4], psi[10][5], psi[10][6]);
 		// printf("%f %f %f %f %f %f %f  \n", psi[11][0], psi[11][1], psi[11][2], psi[11][3], psi[11][4], psi[11][5], psi[11][6]);
 		// printf("%f %f %f %f %f %f %f  \n", psi[12][0], psi[12][1], psi[12][2], psi[12][3], psi[12][4], psi[12][5], psi[12][6]);
 		// printf("%f %f %f %f %f %f %f  \n", psi[13][0], psi[13][1], psi[13][2], psi[13][3], psi[13][4], psi[13][5], psi[13][6]);
 		// printf("%f %f %f %f %f %f %f  \n", psi[14][0], psi[14][1], psi[14][2], psi[14][3], psi[14][4], psi[14][5], psi[14][6]);
 		// printf("%f %f %f %f %f %f %f  \n", psi[15][0], psi[15][1], psi[15][2], psi[15][3], psi[15][4], psi[15][5], psi[15][6]);
-		printf("%f %f %f %f %f %f %f  \n", phi[8][0], phi[8][1], phi[8][2], phi[8][3], phi[8][4], phi[8][5], phi[8][6]);
-		printf("%f %f %f %f %f %f %f  \n", phi[9][0], phi[9][1], phi[9][2], phi[9][3], phi[9][4], phi[9][5], phi[9][6]);
-		printf("%f %f %f %f %f %f %f  \n", phi[10][0], phi[10][1], phi[10][2], phi[10][3], phi[10][4], phi[10][5], phi[10][6]);
-		printf("%f %f %f %f %f %f %f  \n", phi[11][0], phi[11][1], phi[11][2], phi[11][3], phi[11][4], phi[11][5], phi[11][6]);
-		printf("%f %f %f %f %f %f %f  \n", phi[12][0], phi[12][1], phi[12][2], phi[12][3], phi[12][4], phi[12][5], phi[12][6]);
-		printf("%f %f %f %f %f %f %f  \n", phi[13][0], phi[13][1], phi[13][2], phi[13][3], phi[13][4], phi[13][5], phi[13][6]);
-		printf("%f %f %f %f %f %f %f  \n", phi[14][0], phi[14][1], phi[14][2], phi[14][3], phi[14][4], phi[14][5], phi[14][6]);
-		printf("%f %f %f %f %f %f %f  \n", phi[15][0], phi[15][1], phi[15][2], phi[15][3], phi[15][4], phi[15][5], phi[15][6]);
-		// printf("%f %f %f %f %f %f %f  \n", Am[0][0], Am[0][1], Am[0][2], Am[0][3], Am[0][4], Am[0][5], Am[0][6]);		
-		// printf("%f %f %f %f %f %f %f  \n", Am[1][0], Am[1][1], Am[1][2], Am[1][3], Am[1][4], Am[1][5], Am[1][6]);
-		// printf("%f %f %f %f %f %f %f  \n", Am[2][0], Am[2][1], Am[2][2], Am[2][3], Am[2][4], Am[2][5], Am[2][6]);
-		// printf("%f %f %f %f %f %f %f  \n", Am[3][0], Am[3][1], Am[3][2], Am[3][3], Am[3][4], Am[3][5], Am[3][6]);
-		// printf("%f %f %f %f %f %f %f  \n", Am[4][0], Am[4][1], Am[4][2], Am[4][3], Am[4][4], Am[4][5], Am[4][6]);
-		// printf("%f %f %f %f %f %f %f  \n", Am[5][0], Am[5][1], Am[5][2], Am[5][3], Am[5][4], Am[5][5], Am[5][6]);
-		// printf("%f %f %f %f %f %f %f  \n", Am[6][0], Am[6][1], Am[6][2], Am[6][3], Am[6][4], Am[6][5], Am[6][6]);
-		// printf("%f %f %f %f %f %f %f  \n", Bm[8][0], Bm[3][1], Bm[4][2], Bm[5][3], Am[7][4], Am[7][5], Am[7][6]);
+
+		// printf("%f %f %f %f %f %f %f  \n", phi[0][8], phi[1][8], phi[2][8], phi[3][8], phi[4][8], phi[5][8], phi[6][8]);
+		// printf("%f %f %f %f %f %f %f  \n", phi_one[0][8], phi_one[1][8], phi_one[2][8], phi_one[3][8], phi_one[4][8], phi_one[5][8], phi_one[6][8]);
+		// printf("%f %f %f %f %f %f %f  \n", phi[9][0], phi[9][1], phi[9][2], phi[9][3], phi[9][4], phi[9][5], phi[9][6]);
+
+		// printf("%f %f %f %f %f %f %f  \n", phi[10][0], phi[10][1], phi[10][2], phi[10][3], phi[10][4], phi[10][5], phi[10][6]);
+		// printf("%f %f %f %f %f %f %f  \n", phi[11][0], phi[11][1], phi[11][2], phi[11][3], phi[11][4], phi[11][5], phi[11][6]);
+		// printf("%f %f %f %f %f %f %f  \n", phi[12][0], phi[12][1], phi[12][2], phi[12][3], phi[12][4], phi[12][5], phi[12][6]);
+		// printf("%f %f %f %f %f %f %f  \n", phi[13][0], phi[13][1], phi[13][2], phi[13][3], phi[13][4], phi[13][5], phi[13][6]);
+		// printf("%f %f %f %f %f %f %f  \n", phi[14][0], phi[14][1], phi[14][2], phi[14][3], phi[14][4], phi[14][5], phi[14][6]);
+		// printf("%f %f %f %f %f %f %f  \n", phi[15][0], phi[15][1], phi[15][2], phi[15][3], phi[15][4], phi[15][5], phi[15][6]);
+
+		// printf("%f %f %f %f %f %f %f  \n", eta[0], eta[1], eta[2], eta[3], eta[4], eta[5], eta[6]);
+		// printf("%f %f %f %f %f %f %f  \n", eta[7], eta[8], eta[9], eta[10], eta[11], eta[12], eta[13]);
 
 	}
 
-	//}		//end of simulation loop
+	}		//end of simulation loop
 	//delete[] A_power;
 }
 
